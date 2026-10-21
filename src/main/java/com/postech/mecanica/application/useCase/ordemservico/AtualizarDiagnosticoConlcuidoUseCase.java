@@ -20,7 +20,7 @@ import com.postech.mecanica.domain.repository.ServicoRepository;
 import com.postech.mecanica.exception.RegraNegocioException;
 import com.postech.mecanica.exception.ResourceNotFoundException;
 import com.postech.mecanica.domain.entity.Estoque;
-import com.postech.mecanica.infrastructure.persistence.entity.ServicoEntity;
+import com.postech.mecanica.domain.entity.Servico;
 
 @Service
 public class AtualizarDiagnosticoConlcuidoUseCase {
@@ -75,7 +75,7 @@ public class AtualizarDiagnosticoConlcuidoUseCase {
         List<OrdemServicoItemServico> servicos = new ArrayList<>();
         if (requestDTO.servicos() != null) {
             for (ItemServicoRequestDTO item : requestDTO.servicos()) {
-                ServicoEntity servico = servicoRepository.findById(item.getServicoId())
+                Servico servico = servicoRepository.consultarPorId(item.getServicoId())
                         .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado: " + item.getServicoId()));
 
                 servicos.add(new OrdemServicoItemServico(

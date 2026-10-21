@@ -2,11 +2,11 @@ package com.postech.mecanica.application.dto;
 
 import com.postech.mecanica.domain.enums.StatusOrdemServico;
 
-public class AtualizarStatusRequestDTO {
+public class AtualizarStatusOrdemServicoRequestDTO {
 
     private StatusOrdemServico status;
 
-    public AtualizarStatusRequestDTO() {
+    public AtualizarStatusOrdemServicoRequestDTO() {
     }
 
     public StatusOrdemServico getStatus() {

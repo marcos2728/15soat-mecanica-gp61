@@ -21,6 +21,6 @@ public class CadastrarItemEstoqueUseCase {
 
     public EstoqueResponseDTO executar(EstoqueRequestDTO estoqueDTO) {
         Estoque estoque = estoqueMapper.toDomain(estoqueDTO);
-        return estoqueMapper.toDTO(estoqueRepository.salvar(estoque));
+        return estoqueMapper.toResponseDTO(estoqueRepository.salvar(estoque));
     }
 }

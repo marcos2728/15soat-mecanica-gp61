@@ -13,6 +13,12 @@ public class ServicoEntity {
     public ServicoEntity() {
     }
 
+    public ServicoEntity(Long id, String nomeServico, Double valorServico) {
+        this.id = id;
+        this.nomeServico = nomeServico;
+        this.valorServico = valorServico;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

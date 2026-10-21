@@ -12,6 +12,8 @@ public interface ClienteRepository {
 
     Optional<Cliente> consultarPorId(Long id);
 
+    Optional<Cliente> consultarPorVeiculoId(Long veiculoId);
+
     List<Cliente> buscarTodos();
 
     void deletarPorId(Long id);

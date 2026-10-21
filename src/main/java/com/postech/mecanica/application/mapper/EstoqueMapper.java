@@ -2,7 +2,6 @@ package com.postech.mecanica.application.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.postech.mecanica.application.dto.EstoqueDTO;
 import com.postech.mecanica.application.dto.EstoqueRequestDTO;
 import com.postech.mecanica.application.dto.EstoqueResponseDTO;
 import com.postech.mecanica.domain.entity.Estoque;
@@ -33,18 +32,7 @@ public class EstoqueMapper {
                 dto.valorItem());
     }
 
-    public Estoque toDomain(EstoqueDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-        return new Estoque(
-                dto.id(),
-                dto.nomeItem(),
-                dto.quantidadeItem(),
-                dto.valorItem());
-    }
-
-    public EstoqueResponseDTO toDTO(Estoque domain) {
+    public EstoqueResponseDTO toResponseDTO(Estoque domain) {
         if (domain == null) {
             return null;
         }
@@ -53,10 +41,6 @@ public class EstoqueMapper {
                 domain.getNomeItem(),
                 domain.getQuantidadeItem(),
                 domain.getValorItem());
-    }
-
-    public EstoqueResponseDTO toResponseDTO(Estoque domain) {
-        return toDTO(domain);
     }
 
     public EstoqueResponseDTO toDTO(EstoqueEntity entity) {
@@ -70,34 +54,11 @@ public class EstoqueMapper {
                 entity.getValorItem());
     }
 
-    public EstoqueDTO toEstoqueDTO(Estoque domain) {
-        if (domain == null) {
-            return null;
-        }
-        return new EstoqueDTO(
-                domain.getId(),
-                domain.getNomeItem(),
-                domain.getQuantidadeItem(),
-                domain.getValorItem());
-    }
-
     public EstoqueEntity toEntity(EstoqueRequestDTO dto) {
         if (dto == null) {
             return null;
         }
         EstoqueEntity entity = new EstoqueEntity();
-        entity.setNomeItem(dto.nomeItem());
-        entity.setQuantidadeItem(dto.quantidadeItem());
-        entity.setValorItem(dto.valorItem());
-        return entity;
-    }
-
-    public EstoqueEntity toEntity(EstoqueDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-        EstoqueEntity entity = new EstoqueEntity();
-        entity.setId(dto.id());
         entity.setNomeItem(dto.nomeItem());
         entity.setQuantidadeItem(dto.quantidadeItem());
         entity.setValorItem(dto.valorItem());

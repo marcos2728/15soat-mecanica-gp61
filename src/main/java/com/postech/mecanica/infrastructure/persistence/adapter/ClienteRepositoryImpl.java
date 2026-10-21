@@ -39,6 +39,11 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     @Override
+    public Optional<Cliente> consultarPorVeiculoId(Long veiculoId) {
+        return clienteRepositoryJpa.findByVeiculoId(veiculoId).map(mapper::toDomain);
+    }
+
+    @Override
     public List<Cliente> buscarTodos() {
         return clienteRepositoryJpa.findAllComVeiculo().stream()
                 .map(mapper::toDomain)

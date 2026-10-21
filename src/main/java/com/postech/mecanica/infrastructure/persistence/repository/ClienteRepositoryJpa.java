@@ -20,4 +20,6 @@ public interface ClienteRepositoryJpa extends JpaRepository<ClienteEntity, Long>
     @Query("SELECT DISTINCT c FROM ClienteEntity c LEFT JOIN FETCH c.veiculos")
     List<ClienteEntity> findAllComVeiculo();
 
+    @Query("SELECT DISTINCT c FROM ClienteEntity c LEFT JOIN FETCH c.veiculos v WHERE v.id = :veiculoId")
+    Optional<ClienteEntity> findByVeiculoId(@Param("veiculoId") Long veiculoId);
 }

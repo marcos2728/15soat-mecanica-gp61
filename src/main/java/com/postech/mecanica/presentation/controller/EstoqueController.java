@@ -13,44 +13,66 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.postech.mecanica.application.dto.EstoqueDTO;
-import com.postech.mecanica.application.useCase.EstoqueService;
+import com.postech.mecanica.application.dto.EstoqueRequestDTO;
+import com.postech.mecanica.application.dto.EstoqueResponseDTO;
+import com.postech.mecanica.application.useCase.estoque.AtualizarItemEstoqueUseCase;
+import com.postech.mecanica.application.useCase.estoque.CadastrarItemEstoqueUseCase;
+import com.postech.mecanica.application.useCase.estoque.ConsultarItemEstoqueUseCase;
+import com.postech.mecanica.application.useCase.estoque.ConsultarTodasItensEstoqueUseCase;
+import com.postech.mecanica.application.useCase.estoque.DeletarItemEstoqueUseCase;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/estoque")
 public class EstoqueController {
 
-    private final EstoqueService estoqueService;
+    private final CadastrarItemEstoqueUseCase cadastrarItemEstoqueUseCase;
+    private final ConsultarTodasItensEstoqueUseCase consultarTodasItensEstoqueUseCase;
+    private final ConsultarItemEstoqueUseCase consultarItemEstoqueUseCase;
+    private final AtualizarItemEstoqueUseCase atualizarItemEstoqueUseCase;
+    private final DeletarItemEstoqueUseCase deletarItemEstoqueUseCase;
 
-    public EstoqueController(EstoqueService estoqueService) {
-        this.estoqueService = estoqueService;
+    public EstoqueController(
+            CadastrarItemEstoqueUseCase cadastrarItemEstoqueUseCase,
+            ConsultarTodasItensEstoqueUseCase consultarTodasItensEstoqueUseCase,
+            ConsultarItemEstoqueUseCase consultarItemEstoqueUseCase,
+            AtualizarItemEstoqueUseCase atualizarItemEstoqueUseCase,
+            DeletarItemEstoqueUseCase deletarItemEstoqueUseCase) {
+        this.cadastrarItemEstoqueUseCase = cadastrarItemEstoqueUseCase;
+        this.consultarTodasItensEstoqueUseCase = consultarTodasItensEstoqueUseCase;
+        this.consultarItemEstoqueUseCase = consultarItemEstoqueUseCase;
+        this.atualizarItemEstoqueUseCase = atualizarItemEstoqueUseCase;
+        this.deletarItemEstoqueUseCase = deletarItemEstoqueUseCase;
     }
 
     @PostMapping
-    public ResponseEntity<EstoqueDTO> salvar(@RequestBody EstoqueDTO estoqueDTO) {
-        EstoqueDTO salvo = estoqueService.salvar(estoqueDTO);
+    public ResponseEntity<EstoqueResponseDTO> salvar(@Valid @RequestBody EstoqueRequestDTO estoqueDTO) {
+        EstoqueResponseDTO salvo = cadastrarItemEstoqueUseCase.executar(estoqueDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
     @GetMapping
-    public ResponseEntity<List<EstoqueDTO>> listarTodos() {
-        return ResponseEntity.ok(estoqueService.listarTodos());
+    public ResponseEntity<List<EstoqueResponseDTO>> listarTodos() {
+        return ResponseEntity.ok(consultarTodasItensEstoqueUseCase.executar());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EstoqueDTO> consultarItemId(@PathVariable Long id) {
-        return ResponseEntity.ok(estoqueService.consultarItemId(id));
+    public ResponseEntity<EstoqueResponseDTO> consultarItemId(@PathVariable Long id) {
+        return ResponseEntity.ok(consultarItemEstoqueUseCase.executar(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> atualizar(@PathVariable Long id, @RequestBody EstoqueDTO estoqueDTO) {
-        estoqueService.atualizar(id, estoqueDTO);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<EstoqueResponseDTO> atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody EstoqueRequestDTO estoqueDTO) {
+        EstoqueResponseDTO atualizado = atualizarItemEstoqueUseCase.executar(id, estoqueDTO);
+        return ResponseEntity.ok(atualizado);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        estoqueService.deletar(id);
+        deletarItemEstoqueUseCase.executar(id);
         return ResponseEntity.noContent().build();
     }
 }

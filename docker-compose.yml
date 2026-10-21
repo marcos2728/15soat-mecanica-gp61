@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    container_name: mecanica-db
     environment:
       POSTGRES_USER: mecanica
       POSTGRES_PASSWORD: mecanica
@@ -15,8 +16,17 @@ services:
       timeout: 5s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mecanica-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # Servidor SMTP local
+      - "8025:8025" # Webmail Inbox para visualização dos e-mails disparados
+
   app:
     build: .
+    container_name: mecanica-app
     depends_on:
       db:
         condition: service_healthy
@@ -24,6 +34,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mecanica
       SPRING_DATASOURCE_USERNAME: mecanica
       SPRING_DATASOURCE_PASSWORD: mecanica
+      # Configurações de E-mail SMTP (injeta Mailpit por padrão ou credenciais via .env)
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-false}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@mecanica.com}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     ports:
       - "8080:8080"
 

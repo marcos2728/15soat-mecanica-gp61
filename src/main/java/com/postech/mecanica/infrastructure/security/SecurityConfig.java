@@ -50,9 +50,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // públicos: login e consulta de status da OS
+                        // públicos: login, documentação Swagger, aprovação/recusa de OS e consulta de status da OS
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/ordens-servicos/*/status",
+                                "/ordens-servicos/*/aprovar",
+                                "/ordens-servicos/*/recusar",
+                                "/api/os/*/aprovar",
+                                "/api/os/*/recusar",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",

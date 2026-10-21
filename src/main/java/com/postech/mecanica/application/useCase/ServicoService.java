@@ -3,13 +3,13 @@ package com.postech.mecanica.application.useCase;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
-import com.postech.mecanica.application.dto.ServicoDTO;
+import com.postech.mecanica.application.dto.ServicoRequestDTO;
+import com.postech.mecanica.application.dto.ServicoResponseDTO;
 import com.postech.mecanica.application.mapper.ServicoMapper;
+import com.postech.mecanica.domain.entity.Servico;
 import com.postech.mecanica.domain.repository.ServicoRepository;
 import com.postech.mecanica.exception.ResourceNotFoundException;
-import com.postech.mecanica.infrastructure.persistence.entity.ServicoEntity;
 
 @Service
 public class ServicoService {
@@ -17,47 +17,40 @@ public class ServicoService {
     private final ServicoRepository servicoRepository;
     private final ServicoMapper servicoMapper;
 
-    public ServicoService(ServicoRepository servicoRepository) {
+    public ServicoService(ServicoRepository servicoRepository, ServicoMapper servicoMapper) {
         this.servicoRepository = servicoRepository;
-        this.servicoMapper = new ServicoMapper();
+        this.servicoMapper = servicoMapper;
     }
 
-    public ServicoDTO salvar(ServicoDTO ServicoDTO) {
-        ServicoEntity Servico = servicoMapper.toEntity(ServicoDTO);
-        return servicoMapper.toDTO(servicoRepository.save(Servico));
+    public ServicoResponseDTO salvar(ServicoRequestDTO servicoDTO) {
+        Servico servico = servicoMapper.toDomain(servicoDTO);
+        return servicoMapper.toResponseDTO(servicoRepository.salvar(servico));
     }
 
-    public List<ServicoDTO> listarTodos() {
-        return servicoRepository.findAll().stream()
-                .map(servicoMapper::toDTO)
+    public List<ServicoResponseDTO> listarTodos() {
+        return servicoRepository.consultarTodos().stream()
+                .map(servicoMapper::toResponseDTO)
                 .toList();
     }
 
-    public ServicoDTO ServicoPorId(Long id) {
-        return servicoRepository.findById(id)
-                .map(servicoMapper::toDTO)
-                .orElseThrow(() -> new ResourceNotFoundException("Veículo não encontrado com o ID: " + id));
+    public ServicoResponseDTO ServicoPorId(Long id) {
+        return servicoRepository.consultarPorId(id)
+                .map(servicoMapper::toResponseDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado com o ID: " + id));
     }
 
-    public void atualizar(Long id, ServicoDTO ServicoDTO) {
-        ServicoEntity ServicoExistente = servicoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Veículo não encontrado com o ID: " + id));
+    public ServicoResponseDTO atualizar(Long id, ServicoRequestDTO servicoDTO) {
+        Servico servicoExistente = servicoRepository.consultarPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado com o ID: " + id));
 
-        if (StringUtils.hasText(ServicoDTO.getNomeServico())) {
-            ServicoExistente.setNomeServico(ServicoDTO.getNomeServico());
-        }
-
-        if (ServicoDTO.getValorServico() != null) {
-            ServicoExistente.setValorServico(ServicoDTO.getValorServico());
-        }
-
-        servicoRepository.save(ServicoExistente);
+        servicoExistente.atualizarDados(servicoDTO.nomeServico(), servicoDTO.valorServico());
+        return servicoMapper.toResponseDTO(servicoRepository.salvar(servicoExistente));
     }
 
     public void deletar(Long id) {
         if (!servicoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Veículo não encontrado com o ID: " + id);
+            throw new ResourceNotFoundException("Serviço não encontrado com o ID: " + id);
         }
-        servicoRepository.deleteById(id);
+        servicoRepository.deletarPorId(id);
     }
 }

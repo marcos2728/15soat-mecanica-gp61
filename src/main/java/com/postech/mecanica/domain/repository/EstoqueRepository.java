@@ -11,25 +11,10 @@ public interface EstoqueRepository {
 
     Optional<Estoque> consultarPorId(Long id);
 
-    List<Estoque> buscarTodos();
+    List<Estoque> consultarTodos();
 
     void deletarPorId(Long id);
 
     boolean existsById(Long id);
 
-    default Optional<Estoque> findById(Long id) {
-        return consultarPorId(id);
-    }
-
-    default Estoque save(Estoque estoque) {
-        return salvar(estoque);
-    }
-
-    default List<Estoque> findAll() {
-        return buscarTodos();
-    }
-
-    default void deleteById(Long id) {
-        deletarPorId(id);
-    }
 }

@@ -35,7 +35,7 @@ public class EstoqueRepositoryImpl implements EstoqueRepository {
     }
 
     @Override
-    public List<Estoque> buscarTodos() {
+    public List<Estoque> consultarTodos() {
         return estoqueRepositoryJpa.findAll().stream()
                 .map(estoquePersistenceMapper::toDomain)
                 .toList();

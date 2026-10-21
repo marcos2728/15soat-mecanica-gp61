@@ -8,7 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.postech.mecanica.model.ApiErrorDTO;
+import com.postech.mecanica.application.dto.ApiErrorDTO;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;

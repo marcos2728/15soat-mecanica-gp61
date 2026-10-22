@@ -1,0 +1,195 @@
+name: CI/CD Pipeline - Oficina Mecanica
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: mecanica-app
+  K8S_NAMESPACE: mecanica
+
+jobs:
+  # =====================================================================
+  # 1. Build & Test: Compilação, Testes Unitários/Integração e Cobertura
+  # =====================================================================
+  build-and-test:
+    name: Build & Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Código-Fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Executar Testes Automatizados com Maven
+        run: mvn -B clean verify
+
+      - name: Publicar Relatório de Cobertura JaCoCo
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco/
+          retention-days: 14
+
+  # =====================================================================
+  # 2. Security Analysis: Varredura de Vulnerabilidades no Código e Deps
+  # =====================================================================
+  security-analysis:
+    name: Security Vulnerability Scan (SAST)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout do Código-Fonte
+        uses: actions/checkout@v4
+
+      - name: Trivy Vulnerability Scanner no Repositório
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+  # =====================================================================
+  # 3. Docker Build & Push: Construção e Envio da Imagem de Container
+  # =====================================================================
+  docker-build-and-push:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-analysis]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout do Código-Fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+      - name: Definir Tags da Imagem Docker
+        id: meta
+        run: |
+          REPO_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          if [ -z "$REPO_USER" ]; then
+            REPO_USER="mecanica"
+          fi
+          echo "IMAGE_TAG_SHA=${REPO_USER}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG_LATEST=${REPO_USER}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_ENV
+
+      - name: Build e Push da Imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+          tags: |
+            ${{ env.IMAGE_TAG_LATEST }}
+            ${{ env.IMAGE_TAG_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy Scan na Imagem Docker Gerada
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_TAG_SHA }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+  # =====================================================================
+  # 4. Deploy no Kubernetes: Aplicação dos Manifestos e Validação Rollout
+  # =====================================================================
+  deploy-kubernetes:
+    name: Deploy to Kubernetes (EKS)
+    runs-on: ubuntu-latest
+    needs: docker-build-and-push
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout do Código-Fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.30.0'
+
+      - name: Configurar Credenciais AWS (EKS)
+        if: env.AWS_ACCESS_KEY_ID != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+      - name: Atualizar Kubeconfig para o Cluster EKS
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION || 'us-east-1' }} --name ${{ secrets.EKS_CLUSTER_NAME || 'mecanica-dev-eks-cluster' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+      - name: Configurar Kubeconfig alternativo via Secret (se aplicável)
+        if: env.KUBECONFIG_DATA != '' && env.AWS_ACCESS_KEY_ID == ''
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+      - name: Validar Sintaxe dos Manifestos Kubernetes
+        run: |
+          kubectl apply --dry-run=client -f k8s/
+
+      - name: Aplicar Recursos no Cluster Kubernetes
+        if: env.HAS_CLUSTER_ACCESS == 'true'
+        run: |
+          kubectl apply -f k8s/01-configmap-secret.yaml
+          kubectl apply -f k8s/02-postgres-deployment.yaml
+          kubectl apply -f k8s/03-app-deployment.yaml
+          kubectl apply -f k8s/04-app-service.yaml
+          kubectl apply -f k8s/05-app-hpa.yaml
+        env:
+          HAS_CLUSTER_ACCESS: ${{ secrets.AWS_ACCESS_KEY_ID != '' || secrets.KUBECONFIG != '' }}
+
+      - name: Atualizar Imagem do Deployment
+        if: env.HAS_CLUSTER_ACCESS == 'true' && secrets.DOCKERHUB_USERNAME != ''
+        run: |
+          kubectl set image deployment/mecanica-app app=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} -n ${{ env.K8S_NAMESPACE }}
+        env:
+          HAS_CLUSTER_ACCESS: ${{ secrets.AWS_ACCESS_KEY_ID != '' || secrets.KUBECONFIG != '' }}
+
+      - name: Verificar Status do Rollout (Zero-Downtime)
+        if: env.HAS_CLUSTER_ACCESS == 'true'
+        run: |
+          kubectl rollout status deployment/mecanica-app -n ${{ env.K8S_NAMESPACE }} --timeout=180s
+        env:
+          HAS_CLUSTER_ACCESS: ${{ secrets.AWS_ACCESS_KEY_ID != '' || secrets.KUBECONFIG != '' }}

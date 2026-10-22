@@ -1,4 +1,9 @@
-# ===== Maven =====
+# =====================================================================
+# GitIgnore - Sistema de Oficina Mecânica (Tech Challenge Fase 2)
+# Tecnologias: Java / Spring Boot / Maven / Terraform / Kubernetes / Docker
+# =====================================================================
+
+# ===== Maven & Compilação Java =====
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -8,27 +13,90 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
+*.class
+*.war
+*.ear
+*.nar
+*.original
 
-# ===== Logs / Outputs de execução =====
+# Maven Wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# JVM / Crash logs
+hs_err_pid*
+replay_pid*
+
+# ===== Logs / Arquivos de Saída =====
 *.log
 *.out
+logs/
 mvn-*.log
 mvn-*.out
 verify*.log
 verify*.out
 
-# ===== Cobertura / Análise (JaCoCo, Sonar) =====
+# ===== Cobertura & Análise de Código (JaCoCo, Sonar) =====
 jacoco.exec
 *.exec
 .scannerwork/
+.sonar/
 
-# ===== IDEs =====
-# IntelliJ
+# ===== Terraform (Infraestrutura AWS) =====
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# ===== Docker & Kubernetes =====
+docker-compose.override.yml
+*.kubeconfig
+kubeconfig*
+/pgdata/
+/data/
+
+# ===== Ambientes & Segredos Locais =====
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+application-secrets.properties
+application-secrets.yml
+application-secrets.yaml
+
+# Certificados, chaves e credenciais
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+id_rsa*
+.aws/
+credentials
+credentials.json
+
+# ===== IDEs & Editores de Texto =====
+# IntelliJ IDEA
 .idea/
 *.iws
 *.iml
 *.ipr
+out/
 
 # VS Code
 .vscode/
@@ -42,9 +110,9 @@ jacoco.exec
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 bin/
 
 # NetBeans
@@ -54,24 +122,29 @@ bin/
 /nbdist/
 /.nb-gradle/
 
-# ===== Sistema operacional =====
+# Editores gerais / temporários
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
+# ===== Sistema Operacional =====
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
 
-# ===== Ambiente / Segredos =====
-.env
-.env.local
-application-local.properties
-application-secrets.properties
-*.pem
-*.key
-
-# ===== Docker (opcional: manter se quiser versionar volumes locais fora) =====
-# Dockerfile e docker-compose.yml continuam versionados propositalmente
-
-# ===== Outros artefatos de build =====
-*.class
-*.jar
-*.war
-!.mvn/wrapper/maven-wrapper.jar
-*.original
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*

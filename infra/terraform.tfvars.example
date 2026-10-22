@@ -1,0 +1,29 @@
+# =====================================================================
+# Exemplo de Valores para o Terraform (terraform.tfvars)
+# Copie este arquivo para terraform.tfvars e ajuste conforme seu ambiente
+# =====================================================================
+
+aws_region   = "us-east-1"
+project_name = "mecanica"
+environment  = "dev"
+
+# Configuração de Rede
+vpc_cidr               = "10.0.0.0/16"
+public_subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs   = ["10.0.11.0/24", "10.0.12.0/24"]
+database_subnet_cidrs  = ["10.0.21.0/24", "10.0.22.0/24"]
+
+# Configuração do Cluster EKS
+k8s_version           = "1.30"
+node_instance_types   = ["t3.medium"]
+node_min_capacity     = 2
+node_max_capacity     = 4
+node_desired_capacity = 2
+
+# Configuração do RDS PostgreSQL
+db_name                = "mecanica"
+db_username            = "mecanica_admin"
+db_password            = "mecanica_super_secure_pass_2026!"
+db_instance_class      = "db.t3.micro"
+db_allocated_storage   = 20
+db_skip_final_snapshot = true

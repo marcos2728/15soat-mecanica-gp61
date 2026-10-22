@@ -1,50 +1,76 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: mecanica-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: mecanica
-      POSTGRES_PASSWORD: mecanica
-      POSTGRES_DB: mecanica
+      POSTGRES_DB: ${POSTGRES_DB:-mecanica}
+      POSTGRES_USER: ${POSTGRES_USER:-mecanica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mecanica}
     ports:
       - "5432:5432"
     volumes:
-      - mecanica_db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mecanica -d mecanica"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mecanica} -d ${POSTGRES_DB:-mecanica}"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    networks:
+      - mecanica-net
 
   mailpit:
     image: axllent/mailpit:latest
     container_name: mecanica-mailpit
     restart: unless-stopped
     ports:
-      - "1025:1025" # Servidor SMTP local
-      - "8025:8025" # Webmail Inbox para visualização dos e-mails disparados
+      - "1025:1025" # Servidor SMTP
+      - "8025:8025" # Dashboard Web para inspeção de e-mails
+    networks:
+      - mecanica-net
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: mecanica-app
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mecanica
-      SPRING_DATASOURCE_USERNAME: mecanica
-      SPRING_DATASOURCE_PASSWORD: mecanica
-      # Configurações de E-mail SMTP (injeta Mailpit por padrão ou credenciais via .env)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-mecanica}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-mecanica}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-mecanica}
+      JWT_SECRET: ${JWT_SECRET:-2hub0pa0lzMheKg7yF_yfQa-4O2Zrj8vsFb1-K9aqsxzcvY9U56cmxER2KveU9B5}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-false}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-false}
-      APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@mecanica.com}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-notificacoes@mecanica.com}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/v3/api-docs > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - mecanica-net
 
 volumes:
-  mecanica_db:
+  postgres_data:
+    name: mecanica_postgres_data
+
+networks:
+  mecanica-net:
+    name: mecanica_network
+    driver: bridge

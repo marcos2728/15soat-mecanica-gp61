@@ -1,8 +1,10 @@
 package com.postech.mecanica.application.useCase.ordemservico;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +31,7 @@ import com.postech.mecanica.domain.repository.OrdemServicoRepository;
 import com.postech.mecanica.domain.service.IEmailService;
 import com.postech.mecanica.domain.vo.CpfCnpj;
 import com.postech.mecanica.domain.vo.Placa;
+import com.postech.mecanica.exception.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class NotificarClienteAprovacaoUseCaseTest {
@@ -102,5 +105,40 @@ class NotificarClienteAprovacaoUseCaseTest {
         notificarClienteAprovacaoUseCase.executar(100L);
 
         verify(emailService, never()).enviarNotificacaoOrcamento(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ResourceNotFoundException quando OS não for encontrada")
+    void deveLancarExcecaoQuandoOsNaoEncontrada() {
+        when(ordemServicoRepository.consultarPorId(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> notificarClienteAprovacaoUseCase.executar(999L));
+    }
+
+    @Test
+    @DisplayName("Não deve enviar notificação quando OS não tiver veículo associado")
+    void naoDeveEnviarQuandoSemVeiculo() {
+        OrdemServico osSemVeiculo = mock(OrdemServico.class);
+        when(ordemServicoRepository.consultarPorId(200L)).thenReturn(Optional.of(osSemVeiculo));
+
+        assertDoesNotThrow(() -> notificarClienteAprovacaoUseCase.executar(200L));
+        verify(emailService, never()).enviarNotificacaoOrcamento(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Deve normalizar base url terminando com barra ou vazia")
+    void deveNormalizarBaseUrl() {
+        ReflectionTestUtils.setField(notificarClienteAprovacaoUseCase, "baseUrl", "http://meudominio.com/");
+        when(ordemServicoRepository.consultarPorId(100L)).thenReturn(Optional.of(ordemServico));
+        when(clienteRepository.consultarPorVeiculoId(10L)).thenReturn(Optional.of(cliente));
+
+        notificarClienteAprovacaoUseCase.executar(100L);
+
+        verify(emailService).enviarNotificacaoOrcamento(
+                eq(cliente),
+                eq(ordemServico),
+                eq("http://meudominio.com/ordens-servicos/100/aprovar"),
+                eq("http://meudominio.com/ordens-servicos/100/recusar")
+        );
     }
 }

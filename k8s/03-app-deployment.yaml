@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mecanica-app
+  namespace: mecanica
+  labels:
+    app: mecanica-app
+    app.kubernetes.io/name: mecanica-app
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mecanica-app
+  template:
+    metadata:
+      labels:
+        app: mecanica-app
+        app.kubernetes.io/name: mecanica-app
+    spec:
+      containers:
+        - name: app
+          image: mecanica-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: mecanica-config
+            - secretRef:
+                name: mecanica-secret
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mecanica-secret
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 600m
+              memory: 1024Mi
+          # Startup probe: aguarda o Spring Boot subir e executar o data.sql inicial sem reiniciar o pod
+          startupProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 30
+          # Liveness probe: reinicia o pod caso a aplicação entre em estado de deadlock ou trave
+          livenessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness probe: controla o tráfego do Service, garantindo requisições apenas para pods prontos
+          readinessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2

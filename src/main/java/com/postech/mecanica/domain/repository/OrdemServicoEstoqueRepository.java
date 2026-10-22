@@ -10,7 +10,7 @@ import com.postech.mecanica.infrastructure.persistence.entity.OrdemServicoItemEs
 
 public interface OrdemServicoEstoqueRepository extends JpaRepository<OrdemServicoItemEstoqueEntity, Long> {
 
-        @Query("SELECT ose FROM OrdemServicoEstoque ose " +
+        @Query("SELECT ose FROM OrdemServicoItemEstoqueEntity ose " +
                         "WHERE ose.estoque.id = :estoqueId AND ose.disponivel = false " +
                         "ORDER BY ose.ordemServico.dataHoraCriacao ASC")
         List<OrdemServicoItemEstoqueEntity> findPendentesPorEstoqueOrdenadoPorAntiguidade(

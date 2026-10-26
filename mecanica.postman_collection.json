@@ -1,0 +1,1798 @@
+{
+  "info": {
+    "_postman_id": "a7b3c2d1-e5f6-4a9b-8c0d-1e2f3a4b5c6d",
+    "name": "API Mecânica - Postech FIAP",
+    "description": "Collection completa para testes de todas as rotas da API da Oficina Mecânica (Fase 2). Inclui massas de teste dinâmicas e fake (com o e-mail marcos.valentiim@gmail.com), gerenciamento automático de token JWT (Bearer Token) e simulação do ciclo de vida completo da Ordem de Serviço.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clienteCpf",
+      "value": "85492316088",
+      "type": "string"
+    },
+    {
+      "key": "clienteId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "veiculoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "servicoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "estoqueId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "ordemServicoId",
+      "value": "6",
+      "type": "string"
+    },
+    {
+      "key": "osPendenteEstoqueId",
+      "value": "7",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Autenticação",
+      "description": "Endpoints para obtenção de token JWT para os perfis GERENTE e MECANICO.",
+      "item": [
+        {
+          "name": "01 - Login Gerente (Salva Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Token JWT gerado e salvo nas variáveis\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\");",
+                  "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "    console.log(\"Token de GERENTE configurado:\", jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"gerente\",\n  \"senha\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica como gerente (acesso irrestrito) e salva automaticamente o JWT na variável {{token}}."
+          }
+        },
+        {
+          "name": "02 - Login Mecânico (Salva Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Token JWT de Mecânico salvo nas variáveis\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\");",
+                  "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "    console.log(\"Token de MECANICO configurado:\", jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"mecanico\",\n  \"senha\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica como mecânico (permissão restrita a Ordens de Serviço)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Clientes",
+      "description": "Gestão completa de clientes e associação obrigatória de veículos.",
+      "item": [
+        {
+          "name": "01 - Criar Cliente e Veículo (Massa Fake Marcos Valentim)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Cliente criado com sucesso (201)\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"clienteId\", data.id);",
+                  "}",
+                  "if (data.cpfCnpj) {",
+                  "    pm.collectionVariables.set(\"clienteCpf\", data.cpfCnpj);",
+                  "}",
+                  "if (data.veiculo && data.veiculo.id) {",
+                  "    pm.collectionVariables.set(\"veiculoId\", data.veiculo.id);",
+                  "}",
+                  "console.log(\"Cliente ID:\", pm.collectionVariables.get(\"clienteId\"), \"Veiculo ID:\", pm.collectionVariables.get(\"veiculoId\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cpfCnpj\": \"85492316088\",\n  \"nome\": \"Marcos Valentim\",\n  \"email\": \"marcos.valentiim@gmail.com\",\n  \"telefone\": \"11988776655\",\n  \"dataDeNascimento\": \"1992-04-15\",\n  \"veiculo\": {\n    \"placa\": \"BRA2E19\",\n    \"modelo\": \"Civic Touring 1.5 Turbo\",\n    \"marca\": \"Honda\",\n    \"anoFabricacao\": 2023\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "Cadastra um novo cliente com veículo associado usando o e-mail marcos.valentiim@gmail.com e salva clienteId, clienteCpf e veiculoId automaticamente."
+          }
+        },
+        {
+          "name": "02 - Buscar Cliente por CPF/CNPJ (Marcos Valentim)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{clienteCpf}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteCpf}}"
+              ]
+            },
+            "description": "Consulta o cliente recém-criado usando a variável {{clienteCpf}}."
+          }
+        },
+        {
+          "name": "03 - Buscar Cliente Seed (João da Silva)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/7338170002",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "7338170002"
+              ]
+            },
+            "description": "Consulta um cliente pré-carregado no seed da aplicação."
+          }
+        },
+        {
+          "name": "04 - Atualizar Dados do Cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Marcos Valentim Silva\",\n  \"email\": \"marcos.valentiim@gmail.com\",\n  \"telefone\": \"11999887766\",\n  \"dataDeNascimento\": \"1992-04-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Atualiza informações cadastrais do cliente."
+          }
+        },
+        {
+          "name": "05 - Deletar Cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Exclui o cliente identificado por {{clienteId}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Veículos",
+      "description": "Gestão dos veículos pertencentes aos clientes da oficina.",
+      "item": [
+        {
+          "name": "01 - Cadastrar Veículo Adicional para Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Veículo cadastrado\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"veiculoId\", data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"FXA9A88\",\n  \"modelo\": \"Corolla Altis Hybrid 1.8\",\n  \"marca\": \"Toyota\",\n  \"anoFabricacao\": 2024\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                "{{clienteId}}"
+              ]
+            },
+            "description": "Adiciona um segundo veículo para o cliente {{clienteId}}."
+          }
+        },
+        {
+          "name": "02 - Consultar Veículo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/{{veiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                "{{veiculoId}}"
+              ]
+            },
+            "description": "Busca os detalhes de um veículo pelo ID."
+          }
+        },
+        {
+          "name": "03 - Consultar Veículos por Documento do Cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/cliente/{{clienteCpf}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                "cliente",
+                "{{clienteCpf}}"
+              ]
+            },
+            "description": "Lista todos os veículos cadastrados sob o CPF/CNPJ informado."
+          }
+        },
+        {
+          "name": "04 - Atualizar Dados do Veículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"FXA9A88\",\n  \"modelo\": \"Corolla GR-Sport 2.0 Dynamic Force\",\n  \"marca\": \"Toyota\",\n  \"anoFabricacao\": 2024\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/{{veiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                "{{veiculoId}}"
+              ]
+            },
+            "description": "Atualiza os dados de modelo, marca ou placa do veículo."
+          }
+        },
+        {
+          "name": "05 - Deletar Veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/{{veiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                "{{veiculoId}}"
+              ]
+            },
+            "description": "Remove um veículo pelo ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Serviços",
+      "description": "Catálogo de serviços oferecidos pela mecânica e seus respectivos valores de mão de obra.",
+      "item": [
+        {
+          "name": "01 - Cadastrar Novo Serviço",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Serviço criado\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"servicoId\", data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeServico\": \"Revisão Geral e Sangria do Sistema de Freios\",\n  \"valorServico\": 250\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/servicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "servicos"
+              ]
+            },
+            "description": "Cadastra um serviço no catálogo e salva servicoId."
+          }
+        },
+        {
+          "name": "02 - Listar Todos os Serviços",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/servicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "servicos"
+              ]
+            },
+            "description": "Lista todos os serviços disponíveis na oficina mecânica."
+          }
+        },
+        {
+          "name": "03 - Obter Serviço por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/servicos/{{servicoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "servicos",
+                "{{servicoId}}"
+              ]
+            },
+            "description": "Consulta dados de um serviço específico."
+          }
+        },
+        {
+          "name": "04 - Atualizar Serviço",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeServico\": \"Revisão Geral e Sangria do Sistema de Freios Completa\",\n  \"valorServico\": 280\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/servicos/{{servicoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "servicos",
+                "{{servicoId}}"
+              ]
+            },
+            "description": "Atualiza o nome e o valor de mão de obra do serviço."
+          }
+        },
+        {
+          "name": "05 - Deletar Serviço",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/servicos/{{servicoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "servicos",
+                "{{servicoId}}"
+              ]
+            },
+            "description": "Exclui um serviço do catálogo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Estoque de Peças",
+      "description": "Controle de itens e peças em estoque, quantidades disponíveis e valores unitários.",
+      "item": [
+        {
+          "name": "01 - Cadastrar Peça no Estoque",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Item salvo no estoque\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"estoqueId\", data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeItem\": \"Fluido de Freio DOT 4 500ml\",\n  \"quantidadeItem\": 35,\n  \"valorItem\": 42.9\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/estoque",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque"
+              ]
+            },
+            "description": "Cadastra uma nova peça no estoque e armazena estoqueId."
+          }
+        },
+        {
+          "name": "02 - Listar Todo o Estoque",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estoque",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque"
+              ]
+            },
+            "description": "Lista todas as peças cadastradas e seus saldos em estoque."
+          }
+        },
+        {
+          "name": "03 - Consultar Item do Estoque por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estoque/{{estoqueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque",
+                "{{estoqueId}}"
+              ]
+            },
+            "description": "Verifica disponibilidade e preço unitário da peça."
+          }
+        },
+        {
+          "name": "04 - Atualizar Item do Estoque",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeItem\": \"Fluido de Freio DOT 4 500ml Sintético Premium\",\n  \"quantidadeItem\": 45,\n  \"valorItem\": 46.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/estoque/{{estoqueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque",
+                "{{estoqueId}}"
+              ]
+            },
+            "description": "Atualiza saldo ou preço unitário da peça no estoque."
+          }
+        },
+        {
+          "name": "05 - Deletar Item do Estoque",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estoque/{{estoqueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque",
+                "{{estoqueId}}"
+              ]
+            },
+            "description": "Remove o item do estoque."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Ordens de Serviço (Ciclo de Vida Completo)",
+      "description": "Fluxo completo de uma Ordem de Serviço: abertura, diagnóstico, orçamento, aprovação/recusa, execução e entrega.",
+      "item": [
+        {
+          "name": "01 - Abertura de Ordem de Serviço (CRIADA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"OS criada com status 201\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"ordemServicoId\", data.id);",
+                  "    console.log(\"Nova Ordem de Serviço criada ID:\", data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"veiculoId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos"
+              ]
+            },
+            "description": "Abre uma nova Ordem de Serviço para um veículo e define o status inicial como CRIADA."
+          }
+        },
+        {
+          "name": "02 - Consultar OS por ID (Público)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}"
+              ]
+            },
+            "description": "Endpoint público: permite que qualquer usuário/cliente acompanhe o status da OS."
+          }
+        },
+        {
+          "name": "03 - Consultar Ordens de Serviço por Documento do Cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/cliente/{{clienteCpf}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "cliente",
+                "{{clienteCpf}}"
+              ]
+            },
+            "description": "Busca o histórico de ordens de serviço atreladas a um cliente."
+          }
+        },
+        {
+          "name": "04 - Iniciar Diagnóstico (Status EM_DIAGNOSTICO)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EM_DIAGNOSTICO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Mecânico assume o veículo e coloca a OS no status EM_DIAGNOSTICO."
+          }
+        },
+        {
+          "name": "05 - Concluir Diagnóstico com Peças e Serviços (Status DIAGNOSTICO_CONCLUIDO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Diagnóstico concluído com sucesso (200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Status da OS é DIAGNOSTICO_CONCLUIDO\", function () {",
+                  "    pm.expect(data.status).to.eql(\"DIAGNOSTICO_CONCLUIDO\");",
+                  "    console.log(\"Diagnóstico concluído com sucesso. Status atual:\", data.status);",
+                  "    console.log(\"Valor total orçado: R$\", data.valorTotal);",
+                  "});",
+                  "pm.test(\"Todas as peças solicitadas estão disponíveis\", function () {",
+                  "    pm.expect(data.pecas).to.be.an(\"array\").that.is.not.empty;",
+                  "    data.pecas.forEach(function (peca) {",
+                  "        pm.expect(peca.disponivel).to.be.true;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricaoProblema\": \"Cliente Marcos Valentim relata barulho metálico nos freios dianteiros e baixa rotação na marcha lenta. Necessária troca de pastilhas, óleo e filtro.\",\n  \"pecas\": [\n    {\n      \"estoqueId\": 1,\n      \"quantidade\": 1\n    },\n    {\n      \"estoqueId\": 3,\n      \"quantidade\": 1\n    },\n    {\n      \"estoqueId\": 9,\n      \"quantidade\": 4\n    }\n  ],\n  \"servicos\": [\n    {\n      \"servicoId\": 1\n    },\n    {\n      \"servicoId\": 3\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/diagnostico-concluido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "diagnostico-concluido"
+              ]
+            },
+            "description": "Define peças e serviços necessários. Se houver peças em estoque, avança o status e dispara e-mail com link de aprovação para marcos.valentiim@gmail.com."
+          },
+          "description": "Define as peças e serviços orçados pelo mecânico. Como todas as peças solicitadas possuem saldo suficiente em estoque, a OS avança para o status DIAGNOSTICO_CONCLUIDO e reserva as peças no inventário."
+        },
+        {
+          "name": "06 - Notificar Cliente do Orçamento (Status PENDENTE_NOTIFICACAO_CLIENTE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Dispara notificação por e-mail e transita para PENDENTE_APROVACAO_CLIENTE\", function () {",
+                  "    pm.expect(data.status).to.eql(\"PENDENTE_APROVACAO_CLIENTE\");",
+                  "    console.log(\"Notificação disparada com sucesso para o cliente da OS #\" + data.id);",
+                  "    console.log(\"Status atualizado automaticamente para:\", data.status);",
+                  "});",
+                  "pm.test(\"Valida integridade do ID e valor total do orçamento\", function () {",
+                  "    pm.expect(data.id).to.eql(Number(pm.collectionVariables.get(\"ordemServicoId\")));",
+                  "    pm.expect(data.valorTotal).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDENTE_NOTIFICACAO_CLIENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Transita a OS para PENDENTE_NOTIFICACAO_CLIENTE, disparando o evento OrdemServicoAguardandoAprovacaoEvent que envia o e-mail de orçamento (com links de aprovação/recusa) para marcos.valentiim@gmail.com. Em seguida, a aplicação avança automaticamente o status para PENDENTE_APROVACAO_CLIENTE, habilitando a aprovação pelo cliente."
+          }
+        },
+        {
+          "name": "07 - Aprovar Orçamento (POST)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "aprovar"
+              ]
+            },
+            "description": "Cliente aprova o orçamento. OS transiciona para status APROVADA."
+          }
+        },
+        {
+          "name": "08 - Simular Aprovação via Clique do Link no E-mail (GET HTML)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "aprovar"
+              ]
+            },
+            "description": "Simula o clique do cliente no botão de aprovação recebido por e-mail, renderizando uma página HTML amigável."
+          }
+        },
+        {
+          "name": "09 - Recusar Orçamento (POST)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/recusar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "recusar"
+              ]
+            },
+            "description": "Cliente recusa o orçamento. OS transiciona para status CANCELADA."
+          }
+        },
+        {
+          "name": "10 - Simular Recusa via Clique do Link no E-mail (GET HTML)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/recusar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "recusar"
+              ]
+            },
+            "description": "Simula o clique do cliente no botão de recusa recebido por e-mail, exibindo confirmação de cancelamento."
+          }
+        },
+        {
+          "name": "11 - Iniciar Execução dos Serviços (Status EM_EXECUCAO)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EM_EXECUCAO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Mecânico inicia os trabalhos no veículo."
+          }
+        },
+        {
+          "name": "12 - Finalizar Serviços (Status FINALIZADA)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"FINALIZADA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Todos os serviços mecânicos e substituições de peças foram finalizados."
+          }
+        },
+        {
+          "name": "13 - Liberar para Entrega (Status PENDENTE_ENTREGA)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDENTE_ENTREGA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Veículo inspecionado e pronto no pátio aguardando retirada pelo cliente."
+          }
+        },
+        {
+          "name": "14 - Concluir Entrega ao Cliente (Status ENTREGUE)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ENTREGUE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Cliente retira o veículo e a OS é encerrada com sucesso."
+          }
+        },
+        {
+          "name": "15 - Cancelar OS Diretamente (Status CANCELADA)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CANCELADA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "status"
+              ]
+            },
+            "description": "Cancela a OS por desistência ou falta de peça."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Cenário - Falta de Estoque e Reconciliação (PENDENTE_ESTOQUE)",
+      "description": "Cenário completo que simula a falta de peças no estoque (PENDENTE_ESTOQUE), bloqueio de transição indevida para notificação/aprovação, reabastecimento do almoxarifado via evento síncrono (ReconciliacaoEstoqueListener), liberação automática da OS para DIAGNOSTICO_CONCLUIDO e cancelamento alternativo.",
+      "item": [
+        {
+          "name": "01 - Criar OS para Teste de Falta de Estoque (Status CRIADA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"OS criada com sucesso (201)\", function () {",
+                  "    pm.response.to.be.oneOf([200, 201]);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set(\"osPendenteEstoqueId\", data.id);",
+                  "    console.log(\"Nova OS para cenário de falta de estoque criada ID:\", data.id);",
+                  "}",
+                  "pm.test(\"Status inicial da OS é CRIADA\", function () {",
+                  "    pm.expect(data.status).to.eql(\"CRIADA\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"veiculoId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos"
+              ]
+            },
+            "description": "Abre uma nova Ordem de Serviço especificamente para simular o ciclo com pendência de estoque."
+          }
+        },
+        {
+          "name": "02 - Iniciar Diagnóstico do Veículo (Status EM_DIAGNOSTICO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Status transita para EM_DIAGNOSTICO\", function () {",
+                  "    pm.expect(data.status).to.eql(\"EM_DIAGNOSTICO\");",
+                  "    console.log(\"OS #\" + data.id + \" em diagnóstico.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EM_DIAGNOSTICO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "status"
+              ]
+            },
+            "description": "Mecânico assume o veículo e avança a OS para EM_DIAGNOSTICO."
+          }
+        },
+        {
+          "name": "03 - Concluir Diagnóstico com Quantidade Superior ao Estoque (Status PENDENTE_ESTOQUE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"OS transita automaticamente para status PENDENTE_ESTOQUE\", function () {",
+                  "    pm.expect(data.status).to.eql(\"PENDENTE_ESTOQUE\");",
+                  "    console.log(\"OS #\" + data.id + \" transicionou para PENDENTE_ESTOQUE conforme regra de negócio.\");",
+                  "});",
+                  "pm.test(\"Peça sem estoque suficiente é marcada com disponivel = false\", function () {",
+                  "    var pecaFaltante = data.pecas.find(p => p.estoqueId === 10);",
+                  "    pm.expect(pecaFaltante).to.not.be.undefined;",
+                  "    pm.expect(pecaFaltante.disponivel).to.be.false;",
+                  "    pm.expect(pecaFaltante.quantidade).to.eql(999);",
+                  "});",
+                  "pm.test(\"Peça com quantidade disponível é reservada normalmente\", function () {",
+                  "    var pecaDisponivel = data.pecas.find(p => p.estoqueId === 3);",
+                  "    pm.expect(pecaDisponivel).to.not.be.undefined;",
+                  "    pm.expect(pecaDisponivel.disponivel).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricaoProblema\": \"Veículo necessita de troca do conjunto da Bomba de Combustível e Pastilhas. Item de estoque com saldo insuficiente.\",\n  \"pecas\": [\n    {\n      \"estoqueId\": 10,\n      \"quantidade\": 999\n    },\n    {\n      \"estoqueId\": 3,\n      \"quantidade\": 1\n    }\n  ],\n  \"servicos\": [\n    {\n      \"servicoId\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/diagnostico-concluido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "diagnostico-concluido"
+              ]
+            },
+            "description": "Tenta concluir o diagnóstico solicitando uma quantidade de peças maior que a existente no almoxarifado (estoqueId 10 com quantidade 999). O domínio valida a indisponibilidade e coloca a OS no status PENDENTE_ESTOQUE sem dar baixa no item esgotado."
+          }
+        },
+        {
+          "name": "04 - Alterar Status Manualmente para PENDENTE_ESTOQUE (Validação via /status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Status confirmado como PENDENTE_ESTOQUE\", function () {",
+                  "    pm.expect(data.status).to.eql(\"PENDENTE_ESTOQUE\");",
+                  "    console.log(\"Endpoint /status confirmou transição permitida para PENDENTE_ESTOQUE.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDENTE_ESTOQUE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "status"
+              ]
+            },
+            "description": "Valida que o endpoint de alteração de status também aceita a transição direta para PENDENTE_ESTOQUE a partir de EM_DIAGNOSTICO."
+          }
+        },
+        {
+          "name": "05 - Validar Bloqueio de Notificação em PENDENTE_ESTOQUE (Erro 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retorna Bad Request (400) por transição inválida\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Mensagem explica transição não permitida a partir de PENDENTE_ESTOQUE\", function () {",
+                  "    var msg = data.mensagem || data.message || JSON.stringify(data);",
+                  "    pm.expect(msg).to.include(\"PENDENTE_ESTOQUE\");",
+                  "    console.log(\"Bloqueio validado com sucesso:\", msg);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDENTE_NOTIFICACAO_CLIENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "status"
+              ]
+            },
+            "description": "Garante a integridade do ciclo de vida: uma OS com pendência de peças não pode ser enviada para aprovação do cliente até que o estoque seja regularizado."
+          }
+        },
+        {
+          "name": "06 - Reabastecer Peça no Estoque (Dispara Reconciliação Automática)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estoque atualizado com sucesso (200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Evento síncrono disparou ReconciliacaoEstoqueListener e liberou a OS\", function () {",
+                  "    pm.expect(data.ordensServicoLiberadas).to.be.an(\"array\");",
+                  "    var osId = Number(pm.collectionVariables.get(\"osPendenteEstoqueId\"));",
+                  "    pm.expect(data.ordensServicoLiberadas).to.include(osId);",
+                  "    console.log(\"OS #\" + osId + \" liberada automaticamente no evento de reabastecimento!\");",
+                  "});",
+                  "pm.test(\"Saldo em estoque reflete reabastecimento abatido da OS (1500 - 999 = 501)\", function () {",
+                  "    pm.expect(data.quantidadeItem).to.eql(501);",
+                  "    console.log(\"Saldo consolidado em estoque:\", data.quantidadeItem);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeItem\": \"Bomba de combustível\",\n  \"quantidadeItem\": 1500,\n  \"valorItem\": 380.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/estoque/10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "estoque",
+                "10"
+              ]
+            },
+            "description": "Gerente reabastece o item com 1500 unidades. A atualização dispara EstoqueReabastecidoEvent, que ativa o ReconciliacaoEstoqueListener, abate a quantidade requerida pela OS pendente e transita a OS automaticamente para DIAGNOSTICO_CONCLUIDO."
+          }
+        },
+        {
+          "name": "07 - Consultar OS após Reconciliação (Status DIAGNOSTICO_CONCLUIDO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"OS avançou automaticamente para DIAGNOSTICO_CONCLUIDO\", function () {",
+                  "    pm.expect(data.status).to.eql(\"DIAGNOSTICO_CONCLUIDO\");",
+                  "    console.log(\"Status atualizado da OS #\" + data.id + \":\", data.status);",
+                  "});",
+                  "pm.test(\"Todas as peças agora constam como disponíveis (disponivel = true)\", function () {",
+                  "    data.pecas.forEach(function (peca) {",
+                  "        pm.expect(peca.disponivel).to.be.true;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}"
+              ]
+            },
+            "description": "Verifica se a OS saiu do estado PENDENTE_ESTOQUE e passou para DIAGNOSTICO_CONCLUIDO com todas as peças marcadas como disponíveis."
+          }
+        },
+        {
+          "name": "08 - Notificar Cliente após Regularização do Estoque (Status PENDENTE_NOTIFICACAO_CLIENTE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Notificação disparada e OS transita para PENDENTE_APROVACAO_CLIENTE\", function () {",
+                  "    pm.expect(data.status).to.eql(\"PENDENTE_APROVACAO_CLIENTE\");",
+                  "    console.log(\"OS #\" + data.id + \" notificada por e-mail e aguardando aprovação.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDENTE_NOTIFICACAO_CLIENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "status"
+              ]
+            },
+            "description": "Com o diagnóstico concluído e estoque garantido, envia a notificação com link de aprovação ao cliente."
+          }
+        },
+        {
+          "name": "09 - Cenário Alternativo: Cancelar OS com Falta de Estoque (Status CANCELADA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"OS cancelada com sucesso\", function () {",
+                  "    pm.expect(data.status).to.eql(\"CANCELADA\");",
+                  "    console.log(\"OS #\" + data.id + \" cancelada com sucesso.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CANCELADA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{osPendenteEstoqueId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{osPendenteEstoqueId}}",
+                "status"
+              ]
+            },
+            "description": "Demonstra que ordens com peças pendentes podem ser canceladas diretamente caso o cliente não queira aguardar a reposição de peças."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Métricas e Tempos de Execução",
+      "description": "Consultas de auditoria de tempos por fase e métricas de eficiência da oficina mecânica.",
+      "item": [
+        {
+          "name": "01 - Buscar Tempos por Fase da OS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/{{ordemServicoId}}/tempos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "{{ordemServicoId}}",
+                "tempos"
+              ]
+            },
+            "description": "Retorna a linha do tempo com data/hora de entrada, saída e duração em minutos de cada fase da OS."
+          }
+        },
+        {
+          "name": "02 - Tempo Médio por Fase (Métricas da Oficina)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordens-servicos/metricas/tempo-medio-por-fase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordens-servicos",
+                "metricas",
+                "tempo-medio-por-fase"
+              ]
+            },
+            "description": "Calcula a média de tempo gasta em cada fase do ciclo de vida com base nas OSs finalizadas e amostras de dados."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Webhooks e Links Externos (/api/os)",
+      "description": "Endpoints alternativos mapeados para aprovação e recusa externa direta de orçamentos.",
+      "item": [
+        {
+          "name": "01 - Webhook Aprovar OS (POST)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/os/{{ordemServicoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "os",
+                "{{ordemServicoId}}",
+                "aprovar"
+              ]
+            },
+            "description": "Aprova orçamento via webhook externo."
+          }
+        },
+        {
+          "name": "02 - Link Direto Aprovar OS (GET HTML)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/os/{{ordemServicoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "os",
+                "{{ordemServicoId}}",
+                "aprovar"
+              ]
+            },
+            "description": "Link alternativo HTML de aprovação."
+          }
+        },
+        {
+          "name": "03 - Webhook Recusar OS (POST)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/os/{{ordemServicoId}}/recusar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "os",
+                "{{ordemServicoId}}",
+                "recusar"
+              ]
+            },
+            "description": "Recusa orçamento via webhook externo."
+          }
+        },
+        {
+          "name": "04 - Link Direto Recusar OS (GET HTML)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/os/{{ordemServicoId}}/recusar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "os",
+                "{{ordemServicoId}}",
+                "recusar"
+              ]
+            },
+            "description": "Link alternativo HTML de recusa."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Mailpit (Inspeção de E-mails)",
+      "description": "Permite inspecionar diretamente pelo Postman os e-mails disparados pela aplicação local (porta 8025 do container Mailpit).",
+      "item": [
+        {
+          "name": "01 - Listar Mensagens Recebidas no Mailpit",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8025/api/v1/messages",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8025",
+              "path": [
+                "api",
+                "v1",
+                "messages"
+              ]
+            },
+            "description": "Verifica na caixa de entrada virtual do Mailpit os e-mails enviados para marcos.valentiim@gmail.com com os links de aprovação."
+          }
+        },
+        {
+          "name": "02 - Limpar Caixa de Entrada do Mailpit",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8025/api/v1/messages",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8025",
+              "path": [
+                "api",
+                "v1",
+                "messages"
+              ]
+            },
+            "description": "Apaga todos os e-mails da caixa virtual para novos testes limpos."
+          }
+        }
+      ]
+    }
+  ]
+}

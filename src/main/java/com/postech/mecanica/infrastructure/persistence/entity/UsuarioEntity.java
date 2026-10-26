@@ -19,7 +19,7 @@ public class UsuarioEntity {
     private String senha; // hash, nunca texto puro
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "role", nullable = false)
     private PerfilUsuario perfilUsuario;
 
     public UsuarioEntity() {

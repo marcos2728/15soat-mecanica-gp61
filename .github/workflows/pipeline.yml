@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout do Código-Fonte
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessário para o SonarCloud calcular blame e novas linhas
 
       - name: Configurar JDK 21 (Eclipse Temurin)
         uses: actions/setup-java@v4
@@ -34,8 +36,21 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      - name: Executar Testes Automatizados com Maven
-        run: mvn -B clean verify
+      - name: Cache dos pacotes do SonarCloud
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Executar Testes Automatizados e Análise SonarCloud
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B clean verify sonar:sonar \
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY || 'marcos2728_15soat-mecanica-gp61' }} \
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION || 'marcos2728' }}
 
       - name: Publicar Relatório de Cobertura JaCoCo
         uses: actions/upload-artifact@v4

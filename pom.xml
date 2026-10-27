@@ -28,9 +28,23 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-    	<sonar.projectKey>mecanica</sonar.projectKey>
-    	<sonar.host.url>http://localhost:9000</sonar.host.url>
-    	<sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<!-- SonarCloud / Qualidade de Código -->
+		<sonar.organization>marcos2728</sonar.organization>
+		<sonar.projectKey>marcos2728_15soat-mecanica-gp61</sonar.projectKey>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.coverage.exclusions>
+			**/model/**,
+			**/dto/**,
+			**/config/**,
+			**/exception/**,
+			**/entity/**,
+			**/enums/**,
+			**/mapper/**,
+			**/repository/**,
+			**/infrastructure/persistence/**,
+			**/MecanicaApplication.*
+		</sonar.coverage.exclusions>
 		<dependency-check.skip>true</dependency-check.skip>
 	</properties>
 	<dependencies>
@@ -118,6 +132,12 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>5.0.0.4389</version>
+			</plugin>
+
+			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
 				<version>4.8.6.4</version>
@@ -162,8 +182,10 @@
 						<exclude>**/config/**</exclude>
 						<exclude>**/exception/**</exclude>
 						<exclude>**/entity/**</exclude>
+						<exclude>**/enums/**</exclude>
 						<exclude>**/mapper/**</exclude>
 						<exclude>**/repository/**</exclude>
+						<exclude>**/infrastructure/persistence/**</exclude>
 						<exclude>**/MecanicaApplication.*</exclude>
 					</excludes>
 				</configuration>

@@ -37,7 +37,7 @@ C4Container
   Person(cliente, "Cliente", "Consulta status da OS")
 
   System_Boundary(sistema, "Sistema Mecânica") {
-    Container(api, "API Mecânica", "Java, Spring Boot 4", "Camadas: controller, service, repository")
+    Container(api, "API Mecânica", "Java 21, Spring Boot 4", "Onion Architecture: presentation, application, domain, infrastructure")
     ContainerDb(db, "Banco de dados", "PostgreSQL", "Clientes, veículos, estoque, ordens de serviço")
   }
 

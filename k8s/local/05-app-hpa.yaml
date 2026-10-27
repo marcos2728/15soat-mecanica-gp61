@@ -1,0 +1,41 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mecanica-app-hpa
+  namespace: mecanica
+  labels:
+    app: mecanica-app
+    app.kubernetes.io/name: mecanica-app
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mecanica-app
+  minReplicas: 1 # Inicia com apenas 1 pod
+  maxReplicas: 3 # Teto de 3 pods para não consumir RAM da máquina
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 30 # Dispara scale-up com apenas 15m de CPU (~5 a 10 reqs/s)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 10
+        - type: Percent
+          value: 100
+          periodSeconds: 10
+    scaleDown:
+      stabilizationWindowSeconds: 60 # Reduzido para 60s (para demonstrar scale-down sem esperar 5 min)
+      selectPolicy: Min
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 30

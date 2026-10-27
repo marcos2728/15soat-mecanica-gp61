@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mecanica-app
+  namespace: mecanica
+  labels:
+    app: mecanica-app
+    app.kubernetes.io/name: mecanica-app
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  replicas: 1 # Começa com apenas 1 réplica para economizar RAM
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mecanica-app
+  template:
+    metadata:
+      labels:
+        app: mecanica-app
+        app.kubernetes.io/name: mecanica-app
+    spec:
+      containers:
+        - name: app
+          image: mecanica-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: mecanica-config
+            - secretRef:
+                name: mecanica-secret
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mecanica-secret
+                  key: POSTGRES_PASSWORD
+            # Otimização para JVM leve no notebook: GC serial e limite de memória contido
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC -Xss256k"
+          resources:
+            requests:
+              cpu: 50m       # 0.05 CPU (Gatilho de 30% bate com apenas ~15m!)
+              memory: 256Mi  # Máximo de 256MB por pod
+            limits:
+              cpu: 300m
+              memory: 512Mi
+          # Startup probe: aguarda o Spring Boot subir e executar o data.sql inicial
+          startupProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 30
+          # Liveness probe: reinicia caso trave
+          livenessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness probe: controla tráfego do Service
+          readinessProbe:
+            httpGet:
+              path: /v3/api-docs
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2

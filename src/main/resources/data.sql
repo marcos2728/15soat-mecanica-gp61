@@ -27,7 +27,7 @@ ON CONFLICT (placa) DO NOTHING;
 -- CLIENTES (vinculados 1:1 aos veículos acima)
 -- ---------------------------------------------------------
 INSERT INTO clientes (cpf_cnpj, data_de_nascimento, email, nome, telefone) VALUES
-('7338170002', '1990-05-14', 'joao.silva@email.com', 'João da Silva', '11987654321'),
+('07338170002', '1990-05-14', 'joao.silva@email.com', 'João da Silva', '11987654321'),
 ('17619551018', '1985-11-02', 'maria.oliveira@email.com', 'Maria Oliveira', '11976543210'),
 ('58027665060', '1978-03-22', 'carlos.souza@email.com', 'Carlos Souza', '11965432109'),
 ('32670884024', '1995-07-30', 'ana.pereira@email.com', 'Ana Pereira', '11954321098'),
@@ -35,7 +35,7 @@ INSERT INTO clientes (cpf_cnpj, data_de_nascimento, email, nome, telefone) VALUE
 ON CONFLICT (cpf_cnpj) DO NOTHING;
 
 -- Associa cada veículo ao respectivo cliente via FK cliente_id
-UPDATE veiculos SET cliente_id = (SELECT id FROM clientes WHERE cpf_cnpj = '7338170002') WHERE placa = 'ABC1D23' AND cliente_id IS NULL;
+UPDATE veiculos SET cliente_id = (SELECT id FROM clientes WHERE cpf_cnpj = '07338170002') WHERE placa = 'ABC1D23' AND cliente_id IS NULL;
 UPDATE veiculos SET cliente_id = (SELECT id FROM clientes WHERE cpf_cnpj = '17619551018') WHERE placa = 'XYZ9K88' AND cliente_id IS NULL;
 UPDATE veiculos SET cliente_id = (SELECT id FROM clientes WHERE cpf_cnpj = '58027665060') WHERE placa = 'DEF4E56' AND cliente_id IS NULL;
 UPDATE veiculos SET cliente_id = (SELECT id FROM clientes WHERE cpf_cnpj = '32670884024') WHERE placa = 'GHI7F89' AND cliente_id IS NULL;

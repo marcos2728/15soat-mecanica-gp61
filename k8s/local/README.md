@@ -18,6 +18,15 @@ Este diretório contém os manifestos preparados especificamente para rodar **te
 
 ## 🚀 Passo a Passo para Executar
 
+### 0. Pré-requisito: Ativar o Metrics Server (caso ainda não esteja instalado)
+Clusters locais (Docker Desktop / Kind) não vêm com o `metrics-server` ativo por padrão. Se `kubectl top pods` der erro, basta rodar uma única vez:
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl patch deployment metrics-server -n kube-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"metrics-server","args":["--cert-dir=/tmp","--secure-port=10250","--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname","--kubelet-use-node-status-port","--metric-resolution=15s","--kubelet-insecure-tls"]}]}}}}'
+```
+
+---
+
 ### 1. Aplicar a infraestrutura básica e a aplicação leve
 Se os componentes básicos (banco, config e service) já estiverem rodando no cluster, basta atualizar o app e o HPA leve:
 

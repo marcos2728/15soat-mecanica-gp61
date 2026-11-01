@@ -38,5 +38,5 @@ EXPOSE 8080
 # Configurações otimizadas da JVM para containers Kubernetes/Docker
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
-# Inicialização da aplicação
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Inicialização da aplicação com exec para repasse correto de sinais POSIX (SIGTERM/Graceful Shutdown)
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

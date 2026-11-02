@@ -10,6 +10,9 @@ public record CpfCnpj(String cpfCnpj) {
 
         // Deixa apenas os números
         cpfCnpj = cpfCnpj.replaceAll("\\D", "");
+        if (cpfCnpj.length() == 10) {
+            cpfCnpj = "0" + cpfCnpj;
+        }
         if (cpfCnpj.length() == 11) {
             validarCpf(cpfCnpj);
         } else if (cpfCnpj.length() == 14) {
